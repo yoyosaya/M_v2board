@@ -12438,6 +12438,14 @@
                         xhttp: JSON.stringify({
                             path: "/",
                             host: "xtls.github.io"
+                        }, null, 4),
+                        mundordp: JSON.stringify({
+                            username: "MundoUser",
+                            certificateFingerprint: "",
+                            fakeTitle: "",
+                            fakeMessage: "",
+                            acceptProxyProtocol: false,
+                            useTLSCertificate: false
                         }, null, 4)
                     };
                     return d.a.createElement("div", {
@@ -12617,7 +12625,9 @@
                     value: "httpupgrade"
                 }, "HTTPUpgrade"), d.a.createElement(a["a"].Option, {
                     value: "xhttp"
-                }, "XHTTP")))), d.a.createElement("div", {
+                }, "XHTTP"), d.a.createElement(a["a"].Option, {
+                    value: "mundordp"
+                }, "Mundo RDP")))), d.a.createElement("div", {
                     className: "form-group"
                 }, d.a.createElement("label", null, d.a.createElement(o["a"], {
                     placement: "top"
@@ -73830,7 +73840,7 @@
                         className: "form-group"
                     }, d.a.createElement("label", {
                         for: "example-text-input-alt"
-                    }, i[e].label), "input" === i[e].type && d.a.createElement(v["a"], {
+                    }, i[e].label), ("input" === i[e].type || "text" === i[e].type || "string" === i[e].type || !i[e].type) && d.a.createElement(v["a"], {
                         placeholder: i[e].description,
                         defaultValue: o[e] || i[e].value,
                         onChange: t=>this.configOnChange(e, t.target.value)
@@ -80384,6 +80394,93 @@
                                 }
                         }, e)
                     })()
+                }
+            }
+        }
+    },
+    callMx: function(e, t, n) {
+        "use strict";
+        n.r(t);
+        var r = n("p0pE")
+          , i = n.n(r)
+          , o = n("t3Un")
+          , a = {
+            switchLoading: {},
+            saveLoading: !1
+        }
+          , s = function(e) {
+            return "/" + window.settings.secure_path + "/server/mx/" + e
+        };
+        t["default"] = {
+            name: "serverMx",
+            state: i()({}, a),
+            reducers: {
+                setState(e, t) {
+                    var n = t.payload;
+                    return i()({}, e, n)
+                }
+            },
+            effects: {
+                update(e, t) {
+                    var n = e.id
+                      , r = e.key
+                      , i = e.value
+                      , a = t.put;
+                    return Object(o["b"])(s("update"), {
+                        id: n,
+                        [r]: i
+                    }).then(function(e) {
+                        200 === e.code && a({
+                            type: "serverManage/getNodes"
+                        })
+                    })
+                },
+                drop(e, t) {
+                    var n = e.id
+                      , r = t.put;
+                    return Object(o["b"])(s("drop"), {
+                        id: n
+                    }).then(function(e) {
+                        200 === e.code && r({
+                            type: "serverManage/getNodes"
+                        })
+                    })
+                },
+                copy(e, t) {
+                    var n = e.id
+                      , r = t.put;
+                    return Object(o["b"])(s("copy"), {
+                        id: n
+                    }).then(function(e) {
+                        200 === e.code && r({
+                            type: "serverManage/getNodes"
+                        })
+                    })
+                },
+                save(e, t) {
+                    var n = e.params
+                      , r = e.callback
+                      , i = t.put;
+                    return i({
+                        type: "setState",
+                        payload: {
+                            saveLoading: !0
+                        }
+                    }),
+                    Object(o["b"])(s("save"), n).then(function(e) {
+                        if (i({
+                            type: "setState",
+                            payload: {
+                                saveLoading: !1
+                            }
+                        }),
+                        200 !== e.code)
+                            return;
+                        i({
+                            type: "serverManage/getNodes"
+                        }),
+                        "function" === typeof r && r()
+                    })
                 }
             }
         }
@@ -105059,6 +105156,14 @@
                             host: "xtls.github.io",
                             mode: "auto",
                             extra: {}
+                        }, null, 4),
+                        mundordp: JSON.stringify({
+                            username: "MundoUser",
+                            certificateFingerprint: "",
+                            fakeTitle: "",
+                            fakeMessage: "",
+                            acceptProxyProtocol: false,
+                            useTLSCertificate: false
                         }, null, 4)
                     };
                     return y.a.createElement("div", {
@@ -105236,7 +105341,9 @@
                     value: "httpupgrade"
                 }, "HTTPUpgrade"), y.a.createElement(N["a"].Option, {
                     value: "xhttp"
-                }, "XHTTP")))), y.a.createElement("div", {
+                }, "XHTTP"), y.a.createElement(N["a"].Option, {
+                    value: "mundordp"
+                }, "Mundo RDP")))), y.a.createElement("div", {
                     className: "row"
                 }, y.a.createElement("div", {
                     className: "form-group col-md-12 col-xs-12"
@@ -106013,8 +106120,9 @@
                 e = JSON.parse(JSON.stringify(this.state.server));
                 e.network_settings = e.network_settings ? ("string" === typeof e.network_settings ? JSON.parse(e.network_settings) : e.network_settings) : null;
                 delete e.install_command;
+                this.props.mxOnly && (e.protocol = "mx");
                 this.props.dispatch({
-                    type: "serverV2node/save",
+                    type: this.props.mxOnly || e.type === "mx" ? "serverMx/save" : "serverV2node/save",
                     params: e,
                     callback: ()=>{
                         this.onShow()
@@ -106084,6 +106192,14 @@
                             host: "xtls.github.io",
                             mode: "auto",
                             extra: {}
+                        }, null, 4),
+                        mundordp: JSON.stringify({
+                            username: "MundoUser",
+                            certificateFingerprint: "",
+                            fakeTitle: "",
+                            fakeMessage: "",
+                            acceptProxyProtocol: false,
+                            useTLSCertificate: false
                         }, null, 4)
                     };
                     return y.a.createElement("div", {
@@ -106295,7 +106411,7 @@
                     }
                 }))), y.a.createElement("div", {
                     className: "row"
-                }, y.a.createElement("div", {
+                }, !this.props.mxOnly && y.a.createElement("div", {
                     className: "form-group col-md-6 col-xs-12"
                 }, y.a.createElement("label", null, "\u8282\u70b9\u534f\u8bae"), y.a.createElement(N["a"], {
                     value: e.protocol,
@@ -106391,7 +106507,9 @@
                     value: "httpupgrade"
                 }, "HTTPUpgrade"), e.protocol != "trojan" && y.a.createElement(N["a"].Option, {
                     value: "xhttp"
-                }, "XHTTP")))), e.protocol == "anytls" && y.a.createElement("div", {
+                }, "XHTTP"), y.a.createElement(N["a"].Option, {
+                    value: "mundordp"
+                }, "Mundo RDP")))), e.protocol == "anytls" && y.a.createElement("div", {
                     className: "row"
                 }, y.a.createElement("div", {
                     className: "form-group col-md-12 col-xs-12"
@@ -106589,7 +106707,7 @@
                     value: ""
                 },
                 "\u65e0"), n.map(t=>{
-                    if ("v2node" === t.type && t.id !== e.id) return y.a.createElement(N["a"].Option, {
+                    if ((this.props.mxOnly ? "mx" : "v2node") === t.type && t.id !== e.id) return y.a.createElement(N["a"].Option, {
                         key: Math.random(),
                         value: t.id
                     },
@@ -106707,6 +106825,10 @@
                     return y.a.createElement(g["a"], {
                         color: "#FF8C00"
                     }, t)
+                case "mx":
+                    return y.a.createElement(g["a"], {
+                        color: "#00A6A6"
+                    }, t)
                 case "v2node":
                     return y.a.createElement(g["a"], {
                         color: "#FF0000"
@@ -106729,6 +106851,8 @@
                     return "serverVless/".concat(t);
                 case "anytls":
                     return "serverAnyTLS/".concat(t);
+                case "mx":
+                    return "serverMx/".concat(t);
                 case "v2node":
                     return "serverV2node/".concat(t);
                 }
@@ -106799,6 +106923,14 @@
                         record: e
                     }, y.a.createElement("a", null, y.a.createElement(m["a"], {
                         type: "edit"
+                    }), " \u7f16\u8f91")), "mx" === e.type && y.a.createElement(mV2node, {
+                        key: e.id,
+                        record: I()({
+                            protocol: "mx"
+                        }, e),
+                        mxOnly: !0
+                    }, y.a.createElement("a", null, y.a.createElement(m["a"], {
+                        type: "edit"
                     }), " \u7f16\u8f91")), "v2node" === e.type && y.a.createElement(mV2node, {
                         key: e.id,
                         record: e
@@ -106825,7 +106957,7 @@
                     dataIndex: "id",
                     key: "id",
                     width: 150,
-                    filters: ["V2node", "Shadowsocks", "Vmess", "Trojan", "Hysteria", "Tuic", "Vless", "AnyTLS"].map(e=>({
+                    filters: ["V2node", "Shadowsocks", "Vmess", "Trojan", "Hysteria", "Tuic", "Vless", "AnyTLS", "Mx"].map(e=>({
                         text: e,
                         value: e
                     })),
@@ -106977,7 +107109,19 @@
                         key: Math.random()
                     }, y.a.createElement("a", null, this.getTypeTag("vless", "VLess")))), y.a.createElement(p["a"].Item, null, y.a.createElement(mAnyTLS, {
                         key: Math.random()
-                    }, y.a.createElement("a", null, this.getTypeTag("anytls", "AnyTLS")))))
+                    }, y.a.createElement("a", null, this.getTypeTag("anytls", "AnyTLS")))), y.a.createElement(p["a"].Item, null, y.a.createElement(mV2node, {
+                        key: Math.random(),
+                        record: {
+                            protocol: "mx",
+                            tls: 1,
+                            rate: 1,
+                            network: "tcp",
+                            disable_sni: 0,
+                            zero_rtt_handshake: 0,
+                            flow: null
+                        },
+                        mxOnly: !0
+                    }, y.a.createElement("a", null, this.getTypeTag("mx", "Mundo X")))))
                 }, y.a.createElement(l["a"], null, y.a.createElement(m["a"], {
                     type: "plus"
                 }))), y.a.createElement(s["a"], {
@@ -107119,6 +107263,14 @@
                 }), " \u7f16\u8f91")), "anytls" === (null === (r = this.record) || void 0 === r ? void 0 : r.type) && y.a.createElement(mAnyTLS, {
                     key: Math.random(),
                     record: this.record
+                }, y.a.createElement("a", null, y.a.createElement(m["a"], {
+                    type: "form"
+                }), " \u7f16\u8f91")), "mx" === (null === (r = this.record) || void 0 === r ? void 0 : r.type) && y.a.createElement(mV2node, {
+                    key: Math.random(),
+                    record: I()({
+                        protocol: "mx"
+                    }, this.record),
+                    mxOnly: !0
                 }, y.a.createElement("a", null, y.a.createElement(m["a"], {
                     type: "form"
                 }), " \u7f16\u8f91")), "v2node" === (null === (r = this.record) || void 0 === r ? void 0 : r.type) && y.a.createElement(mV2node, {
@@ -112009,6 +112161,9 @@
                 namespace: "serverAnyTLS"
             }, n("callAnyTLS").default)),
             u.model(i()({
+                namespace: "serverMx"
+            }, n("callMx").default)),
+            u.model(i()({
                 namespace: "serverV2node"
             }, n("callV2node").default)),
             u.model(i()({
@@ -113566,6 +113721,14 @@
                         }, null, 4),
                         grpc: JSON.stringify({
                             serviceName: "GunService"
+                        }, null, 4),
+                        mundordp: JSON.stringify({
+                            username: "MundoUser",
+                            certificateFingerprint: "",
+                            fakeTitle: "",
+                            fakeMessage: "",
+                            acceptProxyProtocol: false,
+                            useTLSCertificate: false
                         }, null, 4)
                     };
                     return f.a.createElement("div", {
@@ -113733,7 +113896,9 @@
                     value: "ws"
                 }, "WebSocket"), f.a.createElement(s["a"].Option, {
                     value: "grpc"
-                }, "gRPC")))), f.a.createElement("div", {
+                }, "gRPC"), f.a.createElement(s["a"].Option, {
+                    value: "mundordp"
+                }, "Mundo RDP")))), f.a.createElement("div", {
                     className: "form-group"
                 }, f.a.createElement("label", null, f.a.createElement(o["a"], {
                     placement: "top"

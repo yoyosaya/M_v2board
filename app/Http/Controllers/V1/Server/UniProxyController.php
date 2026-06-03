@@ -129,6 +129,11 @@ class UniProxyController extends Controller
         if (empty($data)) {
             $data = $_POST;
         }
+        if (empty($data)) {
+            return response([
+                'data' => true
+            ]);
+        }
         if (!is_array($data)) {
             return response([
                 'error' => 'Invalid online data format'
@@ -138,6 +143,12 @@ class UniProxyController extends Controller
         $cacheKeys = array_map(function ($uid) {
             return 'ALIVE_IP_USER_' . $uid;
         }, array_keys($data));
+
+        if (empty($cacheKeys)) {
+            return response([
+                'data' => true
+            ]);
+        }
 
         $cachedData = Cache::many($cacheKeys);
         $updates = [];
@@ -275,6 +286,22 @@ class UniProxyController extends Controller
                     'server_port' => $this->nodeInfo->server_port,
                     'server_name' => $this->nodeInfo->server_name,
                     'padding_scheme' => $this->nodeInfo->padding_scheme
+                ];
+                break;
+            case 'mx':
+                $response = [
+                    'host' => $this->nodeInfo->host,
+                    'listen_ip' => $this->nodeInfo->listen_ip,
+                    'server_port' => $this->nodeInfo->server_port,
+                    'network' => $this->nodeInfo->network,
+                    'networkSettings' => $this->nodeInfo->network_settings,
+                    'network_settings' => $this->nodeInfo->network_settings,
+                    'protocol' => 'mx',
+                    'tls' => $this->nodeInfo->tls,
+                    'tls_settings' => $this->nodeInfo->tls_settings,
+                    'tlsSettings' => $this->nodeInfo->tls_settings,
+                    'server_name' => $this->nodeInfo->server_name ?: ($this->nodeInfo->tls_settings['server_name'] ?? null),
+                    'allow_insecure' => $this->nodeInfo->allow_insecure,
                 ];
                 break;
         }

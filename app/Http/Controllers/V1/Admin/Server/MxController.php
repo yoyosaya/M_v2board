@@ -3,32 +3,32 @@
 namespace App\Http\Controllers\V1\Admin\Server;
 
 use App\Http\Controllers\Controller;
-use App\Models\ServerVless;
+use App\Models\ServerMx;
 use Illuminate\Http\Request;
 use ParagonIE_Sodium_Compat as SodiumCompat;
 use App\Utils\Helper;
 
-class VlessController extends Controller
+class MxController extends Controller
 {
     public function save(Request $request)
     {
         $params = $request->validate([
-            'group_id' => 'required',
+            'group_id' => 'required|array',
             'route_id' => 'nullable|array',
             'name' => 'required',
             'parent_id' => 'nullable|integer',
             'host' => 'required',
+            'listen_ip' => 'nullable',
             'port' => 'required',
             'server_port' => 'required',
             'tls' => 'required|in:0,1,2',
             'tls_settings' => 'nullable|array',
-            'flow' => 'nullable|in:xtls-rprx-vision',
-            'network' => 'required',
+            'network' => 'required|in:tcp,ws,grpc,httpupgrade,xhttp,mc1,mundordp',
             'network_settings' => 'nullable|array',
-            'encryption' => 'nullable',
-            'encryption_settings' => 'nullable|array',
+            'server_name' => 'nullable',
+            'allow_insecure' => 'nullable|in:0,1',
             'tags' => 'nullable|array',
-            'rate' => 'required',
+            'rate' => 'required|numeric',
             'show' => 'nullable|in:0,1',
             'sort' => 'nullable'
         ]);
@@ -49,9 +49,7 @@ class VlessController extends Controller
                 $params['tls_settings']['server_port'] = "443";
             }
         }
-        if ($params['network'] != 'tcp') {
-            $params['flow'] = null;
-        }
+
         if (isset($params['network_settings'])) {
             $ns = $params['network_settings'];
             foreach (['acceptProxyProtocol', 'useTLSCertificate'] as $field) {
@@ -59,17 +57,12 @@ class VlessController extends Controller
                     $ns[$field] = filter_var($ns[$field], FILTER_VALIDATE_BOOLEAN);
                 }
             }
-            $params['network_settings'] = $ns;
-        }
-        if ($params['network'] == 'xhttp' && isset($params['network_settings'])) {
-            $ns = $params['network_settings'];
-            if (isset($ns['extra']) && is_array($ns['extra'])) {
+            if (($params['network'] ?? null) === 'xhttp' && isset($ns['extra']) && is_array($ns['extra'])) {
                 $extra = $ns['extra'];
-                if (isset($extra['noGRPCHeader'])) {
-                    $extra['noGRPCHeader'] = filter_var($extra['noGRPCHeader'], FILTER_VALIDATE_BOOLEAN);
-                }
-                if (isset($extra['noSSEHeader'])) {
-                    $extra['noSSEHeader'] = filter_var($extra['noSSEHeader'], FILTER_VALIDATE_BOOLEAN);
+                foreach (['xPaddingObfsMode', 'noGRPCHeader', 'noSSEHeader'] as $field) {
+                    if (isset($extra[$field])) {
+                        $extra[$field] = filter_var($extra[$field], FILTER_VALIDATE_BOOLEAN);
+                    }
                 }
                 if (isset($extra['scMaxBufferedPosts'])) {
                     $extra['scMaxBufferedPosts'] = (int)$extra['scMaxBufferedPosts'];
@@ -92,23 +85,9 @@ class VlessController extends Controller
             }
             $params['network_settings'] = $ns;
         }
-        if (isset($params['encryption']) && $params['encryption'] == 'mlkem768x25519plus') {
-            $keyPair = SodiumCompat::crypto_box_keypair();
-            $params['encryption_settings'] = $params['encryption_settings'] ?? [];
-            if (isset($params['encryption_settings']['rtt'])) {
-                if ($params['encryption_settings']['rtt'] == '1rtt') {
-                    $params['encryption_settings']['ticket'] = '0s';
-                }
-            }
-            if (!isset($params['encryption_settings']['private_key'])) {
-                $params['encryption_settings']['private_key'] = Helper::base64EncodeUrlSafe(SodiumCompat::crypto_box_secretkey($keyPair));
-            }
-            if (!isset($params['encryption_settings']['password'])) {
-                $params['encryption_settings']['password'] = Helper::base64EncodeUrlSafe(SodiumCompat::crypto_box_publickey($keyPair));
-            }
-        }
+
         if ($request->input('id')) {
-            $server = ServerVless::find($request->input('id'));
+            $server = ServerMx::find($request->input('id'));
             if (!$server) {
                 abort(500, '服务器不存在');
             }
@@ -122,7 +101,7 @@ class VlessController extends Controller
             ]);
         }
 
-        if (!ServerVless::create($params)) {
+        if (!ServerMx::create($params)) {
             abort(500, '创建失败');
         }
 
@@ -134,7 +113,7 @@ class VlessController extends Controller
     public function drop(Request $request)
     {
         if ($request->input('id')) {
-            $server = ServerVless::find($request->input('id'));
+            $server = ServerMx::find($request->input('id'));
             if (!$server) {
                 abort(500, '节点ID不存在');
             }
@@ -146,11 +125,16 @@ class VlessController extends Controller
 
     public function update(Request $request)
     {
-        $params = $request->validate([
-            'show' => 'nullable|in:0,1',
+        $request->validate([
+            'show' => 'in:0,1'
+        ], [
+            'show.in' => '显示状态格式不正确'
+        ]);
+        $params = $request->only([
+            'show',
         ]);
 
-        $server = ServerVless::find($request->input('id'));
+        $server = ServerMx::find($request->input('id'));
 
         if (!$server) {
             abort(500, '该服务器不存在');
@@ -168,12 +152,12 @@ class VlessController extends Controller
 
     public function copy(Request $request)
     {
-        $server = ServerVless::find($request->input('id'));
+        $server = ServerMx::find($request->input('id'));
         $server->show = 0;
         if (!$server) {
             abort(500, '服务器不存在');
         }
-        if (!ServerVless::create($server->toArray())) {
+        if (!ServerMx::create($server->toArray())) {
             abort(500, '复制失败');
         }
 
