@@ -48,22 +48,32 @@ class V2boardInstall extends Command
             $this->info("  \ V /  / __/| |_) | (_) | (_| | | | (_| | ");
             $this->info("   \_/  |_____|____/ \___/ \__,_|_|  \__,_| ");
             if (\File::exists(base_path() . '/.env')) {
-                $securePath = config('v2board.secure_path', config('v2board.frontend_admin_path', hash('crc32b', config('app.key'))));
-                $this->info("访问 http(s)://你的站点/{$securePath} 进入管理面板，你可以在用户中心修改你的密码。");
-                abort(500, '如需重新安装请删除目录下.env文件');
+                \Artisan::call('config:clear');
+                if ($this->isInstalled()) {
+                    $securePath = config('v2board.secure_path', config('v2board.frontend_admin_path', hash('crc32b', config('app.key'))));
+                    $this->info("访问 http(s)://你的站点/{$securePath} 进入管理面板，你可以在用户中心修改你的密码。");
+                    abort(500, '如需重新安装请删除目录下.env文件并清空数据库');
+                }
+                $this->info('检测到 .env 已配置，将使用现有数据库配置继续安装...');
+                if (empty(config('app.key'))) {
+                    $this->saveToEnv([
+                        'APP_KEY' => 'base64:' . base64_encode(Encrypter::generateKey('AES-256-CBC')),
+                    ]);
+                    \Artisan::call('config:clear');
+                }
+            } else {
+                if (!copy(base_path() . '/.env.example', base_path() . '/.env')) {
+                    abort(500, '复制环境文件失败，请检查目录权限');
+                }
+                $this->saveToEnv([
+                    'APP_KEY' => 'base64:' . base64_encode(Encrypter::generateKey('AES-256-CBC')),
+                    'DB_HOST' => $this->ask('请输入数据库地址（默认:localhost）', 'localhost'),
+                    'DB_DATABASE' => $this->ask('请输入数据库名'),
+                    'DB_USERNAME' => $this->ask('请输入数据库用户名'),
+                    'DB_PASSWORD' => $this->ask('请输入数据库密码')
+                ]);
+                \Artisan::call('config:clear');
             }
-
-            if (!copy(base_path() . '/.env.example', base_path() . '/.env')) {
-                abort(500, '复制环境文件失败，请检查目录权限');
-            }
-            $this->saveToEnv([
-                'APP_KEY' => 'base64:' . base64_encode(Encrypter::generateKey('AES-256-CBC')),
-                'DB_HOST' => $this->ask('请输入数据库地址（默认:localhost）', 'localhost'),
-                'DB_DATABASE' => $this->ask('请输入数据库名'),
-                'DB_USERNAME' => $this->ask('请输入数据库用户名'),
-                'DB_PASSWORD' => $this->ask('请输入数据库密码')
-            ]);
-            \Artisan::call('config:clear');
             \Artisan::call('config:cache');
             try {
                 DB::connection()->getPdo();
@@ -80,11 +90,9 @@ class V2boardInstall extends Command
                 abort(500, '数据库文件格式有误');
             }
             $this->info('正在导入数据库请稍等...');
-            foreach ($sql as $item) {
-                try {
-                    DB::select(DB::raw($item));
-                } catch (\Exception $e) {
-                }
+            $this->importSql($sql);
+            if (!$this->isInstalled()) {
+                abort(500, '数据库导入失败，请检查 .env 中的数据库配置及账号权限');
             }
             $this->info('数据库导入完成');
             $email = '';
@@ -104,6 +112,31 @@ class V2boardInstall extends Command
             $this->info("访问 http(s)://你的站点/{$defaultSecurePath} 进入管理面板，你可以在用户中心修改你的密码。");
         } catch (\Exception $e) {
             $this->error($e->getMessage());
+        }
+    }
+
+    private function isInstalled(): bool
+    {
+        try {
+            DB::connection()->getPdo();
+            return DB::getSchemaBuilder()->hasTable('v2_user');
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    private function importSql(array $statements): void
+    {
+        foreach ($statements as $item) {
+            $item = trim($item);
+            if ($item === '') {
+                continue;
+            }
+            try {
+                DB::unprepared($item);
+            } catch (\Exception $e) {
+                $this->warn('SQL 执行警告: ' . $e->getMessage());
+            }
         }
     }
 
