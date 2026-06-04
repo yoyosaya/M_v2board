@@ -106882,7 +106882,7 @@
                     0: "error",
                     1: "warning",
                     2: "processing"
-                }, I = (e,t)=>y.a.createElement(d["a"], {
+                }, actionMenu = (e,t)=>y.a.createElement(d["a"], {
                     trigger: "click",
                     overlay: y.a.createElement(p["a"], null, y.a.createElement(p["a"].Item, {
                         onContextMenu: e=>{
@@ -107071,7 +107071,7 @@
                     fixed: "right",
                     width: 100,
                     render: (e,t,n)=>{
-                        return y.a.createElement("div", null, I(t))
+                        return y.a.createElement("div", null, actionMenu(t))
                     }
                 }], F = this;
                 return y.a.createElement(b["a"], i()({}, this.props, {
